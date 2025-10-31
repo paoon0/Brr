@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fastapi
+  template:
+    metadata:
+      labels:
+        app: fastapi
+    spec:
+      #serviceAccountName: fastapi
+      containers:
+      - name: fastapi
+        image: fastapiserver02:latest  # FastAPIのカスタムイメージ
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000 #8000でリッスン
+        env:  # 環境変数の指定y
+        - name: MYSQL_HOST
+          value: "mysql"  # MySQLサービス名
+        - name: MYSQL_USER
+          value: "root"   # MySQLユーザー名
+        - name: MYSQL_PASSWORD
+          value: "a"      # MySQLパスワード
+        - name: MYSQL_DB
+          value: "mydatabase"  # データベース名
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi
+spec:
+  selector:
+    app: fastapi
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

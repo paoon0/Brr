@@ -1,0 +1,6 @@
+fastapi
+pymysql
+uvicorn
+httpx
+pydantic
+pydantic_settings
