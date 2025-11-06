@@ -12,7 +12,7 @@ APIサーバやSQL,Nginxのイメージ,.envは必須
 
 ##以下が主なアプリケーションを構成するファイルである  
 ### db-dep.yaml  
-nginxイメージを利用 nginx.confは__dbconf.yaml__に記述している  
+nginxイメージを利用 nginx.confは[dbconf.yaml]に記述している  
 主にAPIサーバが提供するエンドポイントごとの処理が記述されている    
 
 ### fastapidep2.yaml  
@@ -30,4 +30,4 @@ routersでは公開するAPIを提供し,serviceで具体的なロジックを�
 
 ## 総じて  
 好奇心から実装に至ったものの,バックエンドをここまで実装したのは初めてだったので内部での処理やセキュリティ面に関して非常に学びが多かった.また,利用したことのない技術も多かったため楽しかった.  
-またPodやServiceの基本的な技術は_Docker/Kubernetes実践コンテナ開発入門_ から多く吸収した.
+またPodやServiceの基本的な技術は[Docker/Kubernetes実践コンテナ開発入門]から多く吸収した.
