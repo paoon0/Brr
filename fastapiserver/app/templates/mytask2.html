@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>タスク管理アプリ</title>
+  </head>
+  <body>
+    <h1>タスク一覧</h1>
+    <ul id="task-list" style="list-style-type: none; padding: 0; margin: 0;"></ul>
+    
+
+    <label for="task-title">タスク名</label>
+    <input type="text" id="task-title" placeholder="タスクを入力" />
+    <button id="create-task">作成</button>
+
+    <!-- タスク削除フォーム -->
+    <label for="task-id">削除するタスクID:</label>
+    <input type="number" id="task-id" placeholder="タスクIDを入力" />
+    <button id="delete-task">削除</button>
+
+    <script>
+
+      // APIからタスクを取得して表示する
+      async function fetchAndDisplayTasks() {
+        try {
+          const response = await fetch("/getmytask");
+          if (!response.ok) {
+            throw new Error(`Error: ${response.status}`);
+          }
+          const data = await response.json();
+          const tasks = data.tasks;
+
+          // タスクをリストに追加
+          const taskList = document.getElementById("task-list");
+          taskList.innerHTML = ""; // 一度クリア
+          tasks.forEach((task) => {
+            const listItem = `<li>ID: ${task.id}, タイトル: ${task.title}</li>`;
+            taskList.insertAdjacentHTML("beforeend", listItem); // 動的に挿入
+          });
+        } catch (error) {
+          console.error("タスクの取得に失敗しました:", error);
+        }
+      }
+
+      // ページロード時にタスクを取得
+      document.addEventListener("DOMContentLoaded", fetchAndDisplayTasks);
+
+      // タスク作成
+      document
+        .getElementById("create-task")
+        .addEventListener("click", async () => {
+          const taskTitle = document.getElementById("task-title").value;
+          if (!taskTitle) {
+            alert("タスク名を入力してください");
+            return;
+          }
+
+          try {
+            const startTime = Date.now(); // 計測開始時刻を取得
+            const response = await fetch("/createtask", {
+              method: "POST",
+              headers: { 
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ title: taskTitle }),
+            });
+            const endTime = Date.now(); // 計測終了時刻を取得
+            const elapsedTime = endTime - startTime; // 経過時間を計算
+            console.log(response.text);
+            if (response.ok) {
+              const data = await response.json();
+              alert(`タスク作成成功: ID=${data.id}, タイトル=${data.title}  (${elapsedTime} ms)`);
+            } else {
+              alert(`タスク作成に失敗しました (${elapsedTime} ms)`);
+            }
+          } catch (error) {
+            console.error("エラー:", error);
+            alert("エラーが発生しました");
+          }
+        });
+
+      // タスク削除
+      document
+        .getElementById("delete-task")
+        .addEventListener("click", async () => {
+          const taskId = document.getElementById("task-id").value;
+          if (!taskId) {
+            alert("タスクIDを入力してください");
+            return;
+          }
+
+          try {
+            //リクエスト送信
+            const startTime = Date.now(); // 計測開始時刻を取得
+            //deleteもcreateもnginxをちゃんと経由している
+            const response = await fetch(`/deletetask/${taskId}`, {
+              method: "DELETE",
+              headers: { 
+                "X-custom-header":"Allow" 
+              },
+            });
+            const endTime = Date.now(); // 計測終了時刻を取得
+            const elapsedTime = endTime - startTime; // 経過時間を計算
+            //レスポンス受信
+            if (response.ok) {
+              alert(`タスク削除成功 (${elapsedTime} ms)`);
+            } else {
+              alert(`タスク削除に失敗しました (${elapsedTime} ms)`);
+            }
+          } catch (error) {
+            console.error("エラー:", error);
+            alert("エラーが発生しました");
+          }
+        });
+    </script>
+  </body>
+</html>

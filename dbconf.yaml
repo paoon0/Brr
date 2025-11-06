@@ -1,0 +1,159 @@
+#トークンによるアクセス管理が必要な画面はにはすべてリバースプロキシを使用
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dbcode
+data:
+    nginx.conf: |
+        events {
+        worker_connections 1024;
+        }
+        http {
+            map $http_cookie $auth_token {
+                "~*Authorization=([^;]+)" $1;
+            }
+            server {
+                # 80番でリクエストを受ける
+                listen 80;
+
+                # 403エラー時に /forbidden にリダイレクト
+                error_page 403 /forbidden;
+
+                # 静的リソースの提供
+                location / {
+                    root /usr/share/nginx/html;
+                    try_files $uri /index.html;
+                }
+
+                # ログインページ
+                location /login {
+                    root /usr/share/nginx/html;
+                    try_files $uri /loginform.html;
+                }
+                # エラーページ
+                location /forbidden {
+                    root /usr/share/nginx/html;
+                    try_files $uri /forbidden.html;
+                    internal;
+                }
+                # WASMモジュールの提供
+                #location /wasm {
+                #    root /usr/share/nginx/html;
+                #    try_files $uri /envoyfilter.wasm;
+                #}
+                #location /mywasm {
+                #    root /usr/share/nginx/html;
+                #    try_files $uri /envoyfilter2.wasm;
+                #}
+                location /needauth {
+                    proxy_set_header Authorization "Bearer $auth_token";
+                    proxy_pass http://fastapi:8000;
+                    proxy_set_header Host $host;
+                    proxy_http_version 1.1;
+                    proxy_intercept_errors on;
+                }
+                location /authpoint {
+                    proxy_pass http://fastapi:8000;
+                    #proxy_set_header Authorization $http_authorization;
+                    proxy_set_header Host $host;
+                    proxy_http_version 1.1;
+                }
+                location /createtask {
+                    proxy_set_header Authorization "Bearer $auth_token";
+                    proxy_pass http://fastapi:8000;
+                    proxy_set_header Host $host;
+                    proxy_http_version 1.1;
+                    proxy_intercept_errors on;
+                }
+                location /deletetask/ {
+                    proxy_set_header Authorization "Bearer $auth_token";
+                    proxy_pass http://fastapi:8000;
+                    proxy_set_header Host $host;
+                    proxy_http_version 1.1;
+                    proxy_intercept_errors on;
+                }
+                location /getmytask {
+                    proxy_set_header Authorization "Bearer $auth_token";
+                    proxy_pass http://fastapi:8000;
+                    proxy_set_header Host $host;
+                    proxy_http_version 1.1;
+                    proxy_intercept_errors on;
+                }
+                location /userindex {
+                    proxy_set_header Authorization "Bearer $auth_token";
+                    proxy_pass http://fastapi:8000;
+                    proxy_set_header Host $host;
+                    proxy_http_version 1.1;
+                    proxy_intercept_errors on;
+                }
+
+            }
+        }
+    
+    index.html: |
+        <!DOCTYPE html>
+        <html lang="ja">
+        <head>
+            <meta charset="UTF-8">
+            <title>ようこそ</title>
+        </head>
+        <body>
+            <h1>nginxの提供する初期画面です</h1>
+        </body>
+        </html>
+
+    forbidden.html: |
+        <!DOCTYPE html>
+        <html lang="ja">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>アクセス拒否</title>
+        </head>
+        <body>
+            <h1>アクセスが拒否されました</h1>
+            <p>アクセス権限がありません。ログインが必要です。</p>
+            
+            <!-- OKボタン -->
+            <button onclick="redirectToLogin()">OK</button>
+
+            <script>
+                // OKボタンを押したときのリダイレクト
+                function redirectToLogin() {
+                    window.location.href = "/login";  // ログインページのURLにリダイレクト
+                }
+            </script>
+        </body>
+        </html>
+    loginform.html: |
+        <!DOCTYPE html>
+        <html lang="ja">
+        <head>
+        <meta charset="UTF-8">
+        <title>ログインページ</title>
+        </head>
+        <body>
+        <h2>ログインページ</h2>
+        <button onclick="login()">ログイン</button>
+
+        <script>
+        //公開して問題ない
+            function login() {
+            const clientId = "tkUTctKgnvYsBHoufad8xY5M9S9viw2M";  // Auth0のクライアントID
+            const redirectUri = "http://localhost/authpoint";      // FastAPIでトークン処理を行うエンドポイント
+            const domain = "dev-j24227asrtg7h012.us.auth0.com";    // Auth0のドメイン
+            const audience = "http://localhost:8082"; 
+            const scope = "openid profile email";                  // 必要なスコープ
+            const authUrl = `https://${domain}/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&audience=${encodeURIComponent(audience)}`;
+            
+            // ユーザーをAuth0の認証ページへリダイレクト
+            window.location.href = authUrl;
+            }
+        </script>
+        </body>
+        </html>
+
+
+
+
+

@@ -1,0 +1,18 @@
+# pythonのイメージを使用
+FROM python:3.9-slim
+
+WORKDIR /fastapiserver
+
+RUN apt-get update && apt-get install -y gcc
+
+# 必要なファイルを必要なディレクトリに追加
+COPY ./main.py /fastapiserver/main.py
+COPY ./app/ /fastapiserver/app
+COPY .env /fastapiserver/.env
+COPY ./requirements.txt /fastapiserver/requirements.txt
+
+# ライブラリのインストール
+RUN pip install --no-cache-dir -r /fastapiserver/requirements.txt
+
+# サーバーを起動するためのコマンド
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

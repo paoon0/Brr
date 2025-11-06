@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webserver
+  template:
+    metadata:
+      labels:
+        app: webserver
+    spec:
+      containers:
+      - name: webserver
+        image: nginx:late # Webサーバ用イメージ
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf  # Nginxの設定ファイル
+          subPath: nginx.conf
+        - name: webserver-templates
+          mountPath: /usr/share/nginx/html/index.html  # コンテナ内のパス
+          subPath: index.html  # ConfigMap内のファイル名
+        - name: forbidden
+          mountPath: /usr/share/nginx/html/forbidden.html  # コンテナ内のパス
+          subPath: forbidden.html  # ConfigMap内のファイル名
+        - name: loginpage
+          mountPath: /usr/share/nginx/html/loginform.html  # コンテナ内のパス
+          subPath: loginform.html  # ConfigMap内のファイル名
+    #    - name: wasm
+    #      mountPath: /usr/share/nginx/html/envoyfilter.wasm  # コンテナ内のパス
+    #      subPath: envoyfilter.wasm  # ConfigMap内のファイル名
+    #    - name: wasm2
+    #      mountPath: /usr/share/nginx/html/envoyfilter2.wasm  # コンテナ内のパス
+    #      subPath: envoyfilter2.wasm  # ConfigMap内のファイル名
+      volumes:
+      - name: webserver-templates
+        configMap:
+          name: dbcode
+          items:
+          - key: index.html
+            path: index.html
+      - name: forbidden
+        configMap:
+          name: dbcode
+          items:
+          - key: forbidden.html
+            path: forbidden.html
+      - name: loginpage
+        configMap:
+          name: dbcode
+          items:
+          - key: loginform.html
+            path: loginform.html
+      - name: nginx-config
+        configMap:
+          name: dbcode
+          items:
+          - key: nginx.conf
+            path: nginx.conf
+    #  - name: wasm
+    #    configMap:
+     #     name: wasm-config
+     #     items:
+     #     - key: envoyfilter.wasm
+     #       path: envoyfilter.wasm
+     # - name: wasm2
+       # configMap:
+       #   name: wasm-config2
+       #   items:
+       #   - key: envoyfilter2.wasm
+       #     path: envoyfilter2.wasm
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: webserver
+  labels: 
+    app: webserver
+spec:
+  selector:
+    app: webserver
+  ports:
+    - name: http-port
+      protocol: TCP
+      port: 80 # クライアントが80にリクエスト
+      targetPort: 80 # 80に転送
+
+---
+#localhostへのアクセスをwebにrouting
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: webserver
+  labels:
+    app: webserver
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: localhost 
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: webserver
+                port:
+                  number: 80

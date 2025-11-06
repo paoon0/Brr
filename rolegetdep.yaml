@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: roleapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: roleapi
+  template:
+    metadata:
+      labels:
+        app: roleapi
+    spec:
+      #serviceAccountName: roleapi  # サービスアカウントを指定
+      containers:
+      - name: roleapi
+        image: rolefastapi99:late99  # FastAPIのカスタムイメージ
+        ports:
+        - containerPort: 8080 #8080でリッスン
+        volumeMounts:
+        - name: rolefastapi
+          mountPath: /app/db.py  # コンテナ内でのパス
+          subPath: db.py  # ConfigMap内のファイル名
+      #volumeの参照先の設定
+      volumes:
+      - name: rolefastapi
+        configMap:
+          name: roleserver-config
+          items:
+          - key: db.py
+            path: db.py
+      
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: roleapi
+spec:
+  selector:
+    app: roleapi
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+
+---
+
+#apiVersion: v1
+#kind: ServiceAccount
+#metadata:
+  #name: fastapi
+  #namespace: default
